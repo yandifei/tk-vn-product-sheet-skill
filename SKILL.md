@@ -92,10 +92,19 @@ ARK_API_KEY="your_ark_api_key"
 AGNES_API_KEY="your_agnes_api_key"
 ```
 
-**Image model priority:**
-1. **nano-banana-2** (hfsyapi) — 4K, up to 7 reference images, sharpest
-2. **Doubao Seedream 5.0** (Ark) — 2K fallback
-3. **GPT-Image-2** (hfsyapi) — 1K fallback
+**Vision audit model priority:**
+1. **minimax-m3** (Volcengine coding endpoint) — better recall on brand/logo/watermark
+2. **agnes-2.0-flash** — fallback
+
+**Image gen model priority (fallback chain):**
+1. **gpt-image-2 /edits** (hfsyapi) — edit mode, best product preservation
+2. **nano-banana-2** (hfsyapi) — 4K, up to 7 reference images
+3. **Doubao Seedream 5.0** (Ark) — 2K fallback
+4. **GPT-Image-2 /generations** (hfsyapi) — 1K fallback
+
+> ⚠️ **去水印能力限制**: 所有模型都**没有真正的像素级 mask inpaint**。edits 模式
+> 对原图保留度最好,但去水印/logo 仍是尽力而为(复杂背景上的水印可能残留)。
+> VLM 能"看到"水印但给不出精确坐标,所以无法做精准遮罩擦除。
 
 > **Open source note**: API keys are user-specific. The `.env` file is
 > `.gitignore`d. Users must provide their own keys for the APIs they choose.
@@ -410,25 +419,16 @@ Options: `--input`/`--output`/`--done` folders, `--interval` seconds,
 
 | Optimization | Speedup | How |
 |-------------|--------|-----|
-| **Vision pre-screen** | 10-20× | Classify by URL (no download). Only 20-40% of images need generation. Rest are kept as-is. |
-| **Deduplication** | 10× | 94 rows → ~120 unique images (not 1128). Product shots shared across variant rows. |
-| **Parallel API calls** | 5-10× | 10 concurrent vision + 5 concurrent gen requests instead of sequential. |
-| **Direct URL input** | 3× | Doubao/hfsyapi accept image URLs directly (no base64 encoding needed in most cases). |
-| **Single script** | 2× | No bash timeout, no manual restart, no context loss between steps. |
+| **Vision pre-screen** | 10-20× | Classify by URL (no download). Only 20-40% need generation |
+| **Deduplication** | 10× | 94 rows → ~120 unique images (not 1128) |
+| **Parallel API calls** | 5-10× | Concurrent vision+gen instead of sequential |
+| **Direct URL input** | 3× | APIs accept image URLs directly (no base64) |
+| **Single script** | 2× | No bash timeout, no manual restart |
 
-**Estimated time for 94-row sheet (120 unique images):**
-- Vision pre-screen (120 × 1s, 10 concurrent): ~**12 seconds**
-- Image generation (30-40 images × 30s, 5 concurrent): ~**3-5 minutes**
-- Deterministic + finalize: ~**1 second**
-- **Total: ~3-5 minutes** (vs 60+ min with sequential one-at-a-time)
-
-## Benchmark (actual run on 94-row sheet)
-
-| Method | Time | API calls |
-|--------|------|-----------|
-| Sequential, no pre-screen ❌ | ~60 min | 120× gen |
-| Sequential, with pre-screen | ~15-20 min | 120× vision + ~35× gen |
-| **Parallel + pre-screen (batch_process.py) ✅** | **~3-5 min** | **120× vision(10par) + ~35× gen(5par)** |
+**Benchmark (94-row, ~120 unique images):**
+- Sequential, no pre-screen: ~60 min (120× gen) ❌
+- Sequential + pre-screen: ~15-20 min (120× vision + ~35× gen)
+- **Parallel + pre-screen (batch_process.py)**: **~3-5 min** ✅
 
 ---
 
@@ -471,9 +471,10 @@ Requirements:
 |--------|---------|
 | `scripts/run_pipeline.py` | `prepare` (xlsx→work.json) + `finalize` (work.json→xlsx) |
 | `scripts/sheet_io.py` | xlsx dump/apply utilities |
-| `scripts/nano_gen.py` | **nano-banana-2 image gen wrapper (primary, 4K)** |
-| `scripts/agnes_gen.py` | hfsyapi GPT-Image-2 wrapper (fallback) |
-| `scripts/agnes_read.py` | Vision audit/reading via Agnes 2.0 flash |
+| `scripts/nano_gen.py` | nano-banana-2 image gen wrapper (4K) |
+| `scripts/edit_gen.py` | **gpt-image-2 /edits wrapper (primary, best preservation)** |
+| `scripts/agnes_gen.py` | hfsyapi GPT-Image-2 generations wrapper (fallback) |
+| `scripts/agnes_read.py` | Vision audit via minimax-m3 → agnes-2.0-flash fallback |
 | `scripts/batch_process.py` | Parallel batch: audit + gen + write, one command |
 | `scripts/watch.py` | Folder watcher: drop xlsx → auto-process (unattended) |
 | `scripts/fetch_image.py` | Download image URL to file (for local inspection) |

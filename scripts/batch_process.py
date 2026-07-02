@@ -48,10 +48,37 @@ AUDIT_SYSTEM = (
 # ── API call helpers ──────────────────────────────────────
 
 
-def vision_audit(url: str, agnes_key: str, timeout: int = 60) -> dict:
-    """Audit a single image by URL via Agnes 2.0 flash vision.
-    Returns structured dict. No local download — sends URL directly.
+def vision_audit(url: str, agnes_key: str, timeout: int = 60,
+                 ark_key: str = "") -> dict:
+    """Audit a single image by URL. No local download — sends URL directly.
+    Primary: minimax-m3 via Volcengine coding endpoint (better recall on
+    brand/logo/watermark). Fallback: Agnes 2.0 flash. Returns structured dict.
     """
+    # --- Primary: minimax-m3 (Volcengine) ---
+    if ark_key:
+        try:
+            resp = requests.post(
+                "https://ark.cn-beijing.volces.com/api/coding/v1/chat/completions",
+                headers={"Authorization": f"Bearer {ark_key}"},
+                json={
+                    "model": "minimax-m3",
+                    "messages": [{"role": "user", "content": [
+                        {"type": "text", "text": AUDIT_SYSTEM + "\nBe thorough: check every corner for small logos, semi-transparent watermarks, tiny brand marks."},
+                        {"type": "image_url", "image_url": {"url": url}}
+                    ]}],
+                    "max_tokens": 500,
+                },
+                timeout=timeout,
+            )
+            content = resp.json()["choices"][0]["message"]["content"]
+            m = re.search(r"\{.*\}", content, re.DOTALL)
+            if m:
+                d = json.loads(m.group(0))
+                if "needs_cleaning" in d or "has_brand_name" in d:
+                    return d
+        except Exception:
+            pass
+    # --- Fallback: Agnes 2.0 flash ---
     try:
         resp = requests.post(
             "https://apihub.agnes-ai.com/v1/chat/completions",
@@ -75,7 +102,7 @@ def vision_audit(url: str, agnes_key: str, timeout: int = 60) -> dict:
             return json.loads(m.group(0))
     except Exception:
         pass
-    # On failure, conservatively assume it needs cleaning (safer for IP)
+    # On total failure, conservatively assume needs cleaning (safer for IP)
     return {"needs_cleaning": True, "cleaning_reason": "unknown", "is_promo_banner": False}
 
 
@@ -164,6 +191,34 @@ def hfsyapi_gen(url: str, key: str, timeout: int = 300) -> str | None:
         return None
 
 
+def edit_gen(url: str, key: str, timeout: int = 300) -> str | None:
+    """Primary: gpt-image-2 /v1/images/edits (multipart, best product preservation).
+    Edit mode keeps original closer than full regeneration. Returns URL or None."""
+    try:
+        import io
+        import uuid
+        img = requests.get(url if url.startswith("http") else "https:" + url,
+                           timeout=60, headers={"User-Agent": "Mozilla/5.0"}).content
+        boundary = uuid.uuid4().hex
+        buf = io.BytesIO()
+        for n, v in {"model": "gpt-image-2", "prompt": PROMPT,
+                     "size": "1024x1024", "response_format": "url"}.items():
+            buf.write(f'--{boundary}\r\nContent-Disposition: form-data; name="{n}"\r\n\r\n{v}\r\n'.encode())
+        buf.write(f'--{boundary}\r\nContent-Disposition: form-data; name="image"; '
+                  f'filename="i.jpg"\r\nContent-Type: image/jpeg\r\n\r\n'.encode() + img + b"\r\n")
+        buf.write(f"--{boundary}--\r\n".encode())
+        resp = requests.post(
+            "https://www.hfsyapi.cn/v1/images/edits",
+            headers={"Authorization": f"Bearer {key}",
+                     "Content-Type": f"multipart/form-data; boundary={boundary}",
+                     "User-Agent": "curl/7.68.0"},
+            data=buf.getvalue(), timeout=timeout,
+        )
+        return resp.json()["data"][0]["url"]
+    except Exception:
+        return None
+
+
 # ── Main pipeline ─────────────────────────────────────────
 
 
@@ -192,7 +247,7 @@ def auto_process(xlsx_path: str, ark_key: str, hfsy_key: str, agnes_key: str,
     print(f"[2/5] Vision audit ({audit_workers} parallel)...", flush=True)
     audits: dict[str, dict] = {}
     with ThreadPoolExecutor(max_workers=audit_workers) as ex:
-        fut = {ex.submit(vision_audit, url, agnes_key): url for url in all_urls}
+        fut = {ex.submit(vision_audit, url, agnes_key, 60, ark_key): url for url in all_urls}
         for f in as_completed(fut):
             audits[fut[f]] = f.result()
 
@@ -234,7 +289,11 @@ def auto_process(xlsx_path: str, ark_key: str, hfsy_key: str, agnes_key: str,
     gen_results: dict[str, str | None] = {}
 
     def gen_one(url: str) -> tuple[str, str | None]:
-        # nano-banana-2 (primary) → Doubao → hfsyapi
+        # edits (best preservation) → nano-banana-2(4K) → Doubao(2K) → GPT generations(1K)
+        if hfsy_key:
+            r = edit_gen(url, hfsy_key)
+            if r:
+                return url, r
         if hfsy_key:
             r = nano_gen(url, hfsy_key, size=gen_size)
             if r:

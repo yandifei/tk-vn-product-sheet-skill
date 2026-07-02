@@ -11,6 +11,7 @@ sys.path.insert(0, str(HERE))
 REQUIRED = {
     "sheet_io": ["dump", "apply", "normalize_url", "extract_img_urls", "build_description_html"],
     "nano_gen": ["clean", "get_api_key"],
+    "edit_gen": ["edit", "get_api_key"],
     "agnes_gen": ["clean", "build_prompt", "get_api_key"],
     "fetch_image": ["fetch", "normalize_url"],
     "run_pipeline": ["prepare", "finalize"],
