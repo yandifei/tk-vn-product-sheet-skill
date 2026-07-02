@@ -124,7 +124,7 @@ def finalize(xlsx_path: str, work_json: str, out_xlsx: str) -> None:
         r = row["row_index"]
 
         # --- deterministic transforms (applied here so there is one write step) ---
-        ws.cell(row=r, column=sheet_io.col_idx(COL["brand"])).value = "Generic N/A"
+        ws.cell(row=r, column=sheet_io.col_idx(COL["brand"])).value = None  # 品牌留空
         ws.cell(row=r, column=sheet_io.col_idx(COL["stock"])).value = 30
         ws.cell(row=r, column=sheet_io.col_idx(COL["video"])).value = None  # delete video link
         ws.cell(row=r, column=sheet_io.col_idx(COL["sku"])).value = row["sku"]

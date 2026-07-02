@@ -23,7 +23,8 @@ def data_rows(ws) -> list[int]:
 
 
 def check_brand_set(ws) -> bool:
-    return all(ws.cell(r, 4).value == "Generic N/A" for r in data_rows(ws))
+    # 品牌列留空(不填任何值)
+    return all(not ws.cell(r, 4).value for r in data_rows(ws))
 
 
 def check_stock_set(ws) -> bool:

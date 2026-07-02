@@ -4,7 +4,7 @@ activation: /tk-vn-product-sheet-skill
 description: >-
   Process TikTok cross-border e-commerce spreadsheets for Vietnam site:
   translate Chinese titles/variants to Vietnamese (de-branded, ≤80 chars),
-  set brand→Generic N/A, stock→30, regenerate SKU, clear video links.
+  set brand→(留空), stock→30, regenerate SKU, clear video links.
   Pre-screen product images via vision LLM → only send images containing
   brand/logo/watermark/text to Doubao Seedream 5.0 (2K) or GPT-Image-2
   for cleaning (remove brand/logo/watermark + translate text to Vietnamese).
@@ -341,7 +341,7 @@ python scripts/check_sheet.py "<xlsx>" <check_name>
 |-----|-------|-------------|-----------|
 | B | 产品标题 | Product title | Agent: Chinese→Vietnamese, ≤80, de-brand |
 | C | Tiktok产品描述 | HTML `<img src=…>` description | **Delete** unrelated imgs (客服/营销/优惠/售后), clean+swap product imgs |
-| D | 品牌 | Brand name | Deterministic: `Generic N/A` |
+| D | 品牌 | Brand name | Deterministic: **留空**(clear to empty) |
 | F | sku | SKU number | Deterministic: `YYYYMMDD + 5-digit` |
 | G | 变种属性名称一 | Variant attr name 1 | Agent: Vietnamese |
 | H | 变种属性值一 | Variant attr value 1 | Agent: de-brand + Vietnamese |

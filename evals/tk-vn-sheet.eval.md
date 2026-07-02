@@ -9,7 +9,7 @@ until a first passing rollout baseline is promoted via `--promote`.
   "criteria": [
     {
       "id": "brand_set",
-      "text": "Every data row's column D == 'Generic N/A'",
+      "text": "Every data row's column D (品牌) is empty",
       "type": "command",
       "cmd": "python scripts/check_sheet.py {output} brand_set"
     },
@@ -91,7 +91,7 @@ manually or via `/autoresearch-universal`.
 
 ## Golden case descriptions
 
-- **case1** — single variant row, brand-free title `汽车扶手箱垫中央增高垫...`, brand empty, stock 200, sku `5072154792617`, video link present, main + 8 sub + variant images, weight 0. Expect D→Generic N/A, Q→30, AA empty, F→`YYYYMMDD#####`, B→Vietnamese ≤80 no 原装/原厂, all image URLs https.
+- **case1** — single variant row, brand-free title `汽车扶手箱垫中央增高垫...`, brand empty, stock 200, sku `5072154792617`, video link present, main + 8 sub + variant images, weight 0. Expect D→empty, Q→30, AA empty, F→`YYYYMMDD#####`, B→Vietnamese ≤80 no 原装/原厂, all image URLs https.
 - **case2** — title `苹果原装手机壳iPhone保护套`. Expect rewritten as compatible-with form, ≤80 chars, no 原装.
 - **case3** — image states 重量: 500g, dimensions 20x15x10cm. Expect AD→0.5, AE/AF/AG→20/15/10.
 - **case4** — description contains a 满减优惠券 banner among product images. Expect banner URL removed from C.
