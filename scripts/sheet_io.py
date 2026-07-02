@@ -64,6 +64,24 @@ def build_description_html(urls: list[str]) -> str:
     return "".join(f'<img src="{u}">' for u in urls if u)
 
 
+def extract_text_content(html: str | None) -> str:
+    """Strip all <img ...> tags from HTML, return the remaining text HTML."""
+    if not html:
+        return ""
+    # 删完整<img ...>标签(不只是src部分),避免残留 > 符号
+    text = re.sub(r'<img[^>]*/?>', '', str(html), flags=re.IGNORECASE)
+    return text.strip()
+
+
+def build_description_all(text_html: str, img_urls: list[str]) -> str:
+    """Combine translated text HTML + cleaned img URLs back into a description HTML.
+    Text goes before images (matches actual data patterns)."""
+    cleaned_imgs = "".join(f'<img src="{u}">' for u in img_urls if u)
+    if text_html and cleaned_imgs:
+        return text_html + cleaned_imgs
+    return text_html or cleaned_imgs
+
+
 def dump(xlsx_path: str, out_json: str) -> None:
     wb = openpyxl.load_workbook(xlsx_path, data_only=True)
     ws = wb[SHEET_NAME] if SHEET_NAME in wb.sheetnames else wb.active

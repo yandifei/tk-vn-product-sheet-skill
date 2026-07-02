@@ -147,6 +147,9 @@ table, and IP-infringement red-lines):
   - 越南语音调符号必须正确（`ô tô` 不是 `o to`）
 - **Variant names (G/I/K)**: `颜色分类→Phân loại màu`, `商品规格→Quy cách sản phẩm`
 - **Variant values (H/J/L)**: de-brand + translate, 精简营销废话
+- **产品描述文字 (`desc_text_vi`)**: work.json 每行有 `desc_text_original`(C列去掉图片
+  后的文字HTML,含中文/品牌名)。翻译规则: 去品牌名(如"古德摩翎"删掉或改generic) +
+  译越南语,保留HTML标签(`<p>`等)结构,填入 `desc_text_vi`。纯图片的行 desc_text 为空,跳过。
 
 **IP 红线**（TikTok VN 会下架/封店）: 品牌名当商品主体、`正品/高仿/1:1/原单`、
 未授权 logo、绝对化用语（`最好/第一`）、联系方式外链。全部见 vietnamese-style.md。
@@ -340,7 +343,7 @@ python scripts/check_sheet.py "<xlsx>" <check_name>
 | Col | Field | Description | Treatment |
 |-----|-------|-------------|-----------|
 | B | 产品标题 | Product title | Agent: Chinese→Vietnamese, ≤80, de-brand |
-| C | Tiktok产品描述 | HTML `<img src=…>` description | **Delete** unrelated imgs (客服/营销/优惠/售后), clean+swap product imgs |
+| C | Tiktok产品描述 | 文字+图片混合HTML | **文字**: 去品牌+译越南语; **图片**: 删无关图(客服/营销/售后), 产品图有字/品牌则清洗; 保持文字+图片重组 |
 | D | 品牌 | Brand name | Deterministic: **留空**(clear to empty) |
 | F | sku | SKU number | Deterministic: `YYYYMMDD + 5-digit` |
 | G | 变种属性名称一 | Variant attr name 1 | Agent: Vietnamese |

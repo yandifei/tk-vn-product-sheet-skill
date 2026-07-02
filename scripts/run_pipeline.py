@@ -101,10 +101,15 @@ def prepare(xlsx_path: str, work_json: str) -> None:
                            "decision": "", "new_url": "", "vi_text": "",
                            "weight_kg": None, "l": None, "w": None, "h": None})
 
+        # 提取C列文字部分(去掉img标签后的文字HTML),供agent翻译去品牌
+        desc_text = sheet_io.extract_text_content(desc_html)
+
         rows.append({
             "row_index": r,
             "sku": sku,
             "translate": {"B": "", "G": "", "H": "", "I": "", "J": "", "K": "", "L": ""},
+            "desc_text_original": desc_text,   # 原始C列文字(含中文/品牌名), 只读参考
+            "desc_text_vi": "",                # agent填: 去品牌+翻译越南语后的文字HTML
             "images": images,
         })
 
@@ -173,12 +178,16 @@ def finalize(xlsx_path: str, work_json: str, out_xlsx: str) -> None:
                     ws.cell(row=r, column=sheet_io.col_idx(img["col"])).value = new_url
                 continue
 
-        # rewrite description HTML: drop deleted, swap replaced, keep order
+        # rewrite description (C): 文字部分用翻译后的, 图片部分删无关+换清洗后, 保持顺序
         desc_ci = sheet_io.col_idx(COL["desc"])
         cur_html = ws.cell(row=r, column=desc_ci).value
         cur_urls = sheet_io.extract_img_urls(cur_html)  # normalizes too
         new_urls = [desc_replace.get(u, u) for u in cur_urls if u not in desc_delete]
-        ws.cell(row=r, column=desc_ci).value = sheet_io.build_description_html(new_urls)
+        # 文字: agent填了越南语翻译就用翻译, 否则保留原文字
+        vi_text = row.get("desc_text_vi") or ""
+        if not vi_text:
+            vi_text = sheet_io.extract_text_content(cur_html)
+        ws.cell(row=r, column=desc_ci).value = sheet_io.build_description_all(vi_text, new_urls)
 
         # physical attrs
         if collected_weight is not None:

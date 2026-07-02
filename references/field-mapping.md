@@ -6,7 +6,7 @@ Full column map (row 1 headers) and per-field treatment for the Vietnam pipeline
 |-----|--------|-----------|------|
 | A | 分类id | keep | unchanged |
 | B | 产品标题 | translate | → Vietnamese ≤80 chars; drop 原装/原厂; de-brand; IP-safe |
-| C | Tiktok产品描述 | rewrite | `<img src=…>` HTML; drop promo/after-sales imgs; swap cleaned URLs |
+| C | Tiktok产品描述 | rewrite | 文字+图片混合: **文字**去品牌+译越南语; **图片**删无关(客服/营销/售后),保留产品图,产品图有字/品牌则生图清洗; 文字+图片重组 |
 | D | 品牌 | set | **留空**（清空，不填任何值） |
 | E | 产品属性 | keep | already Vietnamese JSON; leave as-is |
 | F | sku | set | `YYYYMMDD` + 5-digit sequence (e.g. `2026070100001`) |
