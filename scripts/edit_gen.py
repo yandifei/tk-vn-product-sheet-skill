@@ -30,7 +30,18 @@ API_URL = "https://www.hfsyapi.cn/v1/images/edits"
 MODEL = "gpt-image-2"
 TIMEOUT = 300
 
-PROMPT = "Remove brand names, logos and watermarks. Translate all text to Vietnamese. Keep the product exactly the same."
+PROMPT_FILE = Path(__file__).resolve().parent.parent / '图片生成提示词.md'
+
+def _load_prompt() -> str:
+    """Read the shared image-cleaning prompt from the project root markdown file."""
+    text = PROMPT_FILE.read_text(encoding='utf-8')
+    # The first line is '# 提示词'; everything after is the prompt body.
+    _, _, body = text.partition('
+')
+    return body.lstrip('
+')
+
+PROMPT = _load_prompt()
 
 
 def get_api_key() -> str:

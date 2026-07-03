@@ -24,8 +24,18 @@ MODEL = "agnes-image-2.1-flash"
 TIMEOUT = 300
 RETRIES = 3
 
-BASE_PROMPT = "Remove brand names, logos, watermarks, and change all text in the image to Vietnamese."
-VI_PROMPT_TMPL = " Render this Vietnamese text on the image:\n{vi}"
+BASE_PROMPT_FILE = Path(__file__).resolve().parent.parent / '图片生成提示词.md'
+
+def _load_base_prompt() -> str:
+    """Read the shared image-cleaning prompt from the project root markdown file."""
+    text = BASE_PROMPT_FILE.read_text(encoding='utf-8')
+    _, _, body = text.partition('
+')
+    return body.lstrip('
+')
+
+BASE_PROMPT = _load_base_prompt()
+VI_PROMPT_TMPL = "\n【越南语文字指定】\n请将图片中的中文文案替换为以下越南语文字：\n{vi}"
 
 
 def get_api_key() -> str:

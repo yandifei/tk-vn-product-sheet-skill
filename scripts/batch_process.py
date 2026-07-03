@@ -38,7 +38,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_pipeline  # noqa: E402
 from run_pipeline import prepare as rp_prepare, finalize as rp_finalize
 
-PROMPT = "Remove brand names, logos and watermarks from the image, and translate all text to Vietnamese."
+PROMPT_FILE = Path(__file__).resolve().parent.parent / '图片生成提示词.md'
+
+def _load_prompt() -> str:
+    """Read the shared image-cleaning prompt from the project root markdown file."""
+    text = PROMPT_FILE.read_text(encoding='utf-8')
+    # The first line is '# 提示词'; everything after is the prompt body.
+    _, _, body = text.partition('
+')
+    return body.lstrip('
+')
+
+PROMPT = _load_prompt()
 
 AUDIT_SYSTEM = (
     "Audit product image. Output JSON only: "

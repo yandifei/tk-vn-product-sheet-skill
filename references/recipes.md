@@ -9,7 +9,9 @@ AGNES_KEY = "..."  # vision audit
 ARK_KEY = "..."    # Doubao image gen
 HFSY_KEY = "..."   # fallback image gen
 
-PROMPT = "Remove brand names, logos and watermarks from the image, and translate all text to Vietnamese."
+# PROMPT is now read from the project-root 图片生成提示词.md at runtime.
+# To change the prompt, edit that file — all generation scripts pick it up automatically.
+PROMPT = Path(__file__).resolve().parent.parent / "图片生成提示词.md"  # read at call site
 
 def audit_image(url):
     """Vision audit: returns JSON with has_brand_name, has_logo, has_watermark, has_chinese_text, is_promo_banner, needs_cleaning"""
